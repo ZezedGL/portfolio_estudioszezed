@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Eventos</title>
+  <link rel="stylesheet" href="sla.css">
+  <!-- Biblioteca para gerar QR Code -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- PÁGINA 1: LOGIN E CADASTRO -->
+    <div id="page1" class="page active">
+      <h2>Acessar o Sistema</h2>
+      <input type="email" id="loginEmail" placeholder="Seu e-mail">
+      <input type="password" id="loginSenha" placeholder="Sua senha">
+      <select id="userTipo">
+        <option value="cliente">Cliente</option>
+        <option value="admin">Administrador</option>
+      </select>
+      <button onclick="fazerLogin()">Entrar</button>
+      <button style="background-color: #007bff;" onclick="cadastrarUsuario()">Cadastrar Novo Usuário</button>
+    </div>
+
+    <!-- PÁGINA 2: DASHBOARD (ADMIN OU CLIENTE) -->
+    <div id="page2" class="page">
+      <!-- Visão do Administrador -->
+      <div id="adminView" style="display: none;">
+        <h2>Criar Novo Evento</h2>
+        <input type="text" id="nomeEvento" placeholder="Nome do Evento">
+        <input type="date" id="dataEvento">
+        <input type="number" id="valorEvento" placeholder="Valor (R$)">
+        <button onclick="criarEvento()">Publicar Evento</button>
+      </div>
+
+      <!-- Visão do Cliente -->
+      <div id="clienteView" style="display: none;">
+        <h2>Eventos Disponíveis</h2>
+        <div id="listaEventos"></div>
+      </div>
+    </div>
+
+    <!-- PÁGINA 3: PAGAMENTO PIX -->
+    <div id="page3" class="page">
+      <h2>Pagamento via Pix</h2>
+      <p style="text-align: center; margin-bottom: 10px;">Escaneie o QR Code abaixo:</p>
+      <div id="qrcode"></div>
+      <p><strong>Código Copia e Cola:</strong></p>
+      <input type="text" id="pixCode" readonly value="00020126360014BR.GOV.BCB.PIX0114+5511999999999520400005303986540510.005802BR5913EVENTOS_SA6008SAO_PAULO62070503***6304E2CA">
+      <button onclick="confirmarPagamento()">Já realizei o pagamento</button>
+    </div>
+
+    <!-- PÁGINA 4: CONFIRMAÇÃO E INGRESSO -->
+    <div id="page4" class="page">
+      <h2>Inscrição Confirmada! 🎉</h2>
+      <p style="text-align: center;">Apresente o código abaixo na entrada do evento:</p>
+      <div class="ticket-code" id="codigoIngresso">------</div>
+      <button onclick="navegarPara('page2')">Voltar aos Eventos</button>
+    </div>
+
+  </div>
+
+  <script>
+    // Substitua pela URL da sua Web App do Google Apps Script
+    const API_URL = [AKfycbxWCceEDtl1QamXid-LY6uQL1eySaJ7V8MG-bcR1e-X_fqUA08hTB3aiRpVjnWxinY]; 
+
+    let usuarioAtual = { email: '', tipo: '' };
+    let eventoSelecionado = null;
+
+    function navegarPara(pageId) {
+      document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+    }
+
+    // --- FUNÇÕES DA PÁGINA 1 ---
+    async function cadastrarUsuario() {
+      const email = document.getElementById('loginEmail').value;
+      const senha = document.getElementById('loginSenha').value;
+      const tipo = document.getElementById('userTipo').value;
+
+      if (!email || !senha) return alert('Preencha todos os campos!');
+
+      try {
+        // Envio com text/plain para evitar Preflight (OPTIONS) e erros de CORS
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          contentType: 'text/plain;charset=utf-8',
+          body: JSON.stringify({ action: 'cadastro', email, senha, tipo })
+        });
+        const data = await res.json();
+        alert(data.message);
+      } catch (error) {
+        console.error('Erro no cadastro:', error);
+        alert('Erro ao realizar cadastro. Verifique a URL e as permissões do Apps Script.');
+      }
+    }
+
+    async function fazerLogin() {
+      const email = document.getElementById('loginEmail').value;
+      const senha = document.getElementById('loginSenha').value;
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          contentType: 'text/plain;charset=utf-8',
+          body: JSON.stringify({ action: 'login', email, senha })
+        });
+        const data = await res.json();
+
+        if (data.status === 'sucesso') {
+          usuarioAtual = { email, tipo: data.tipo };
+          carregarDashboard();
+        } else {
+          alert(data.message);
+        }
+      } catch (error) {
+        console.error('Erro no login:', error);
+        alert('Erro ao realizar login. Verifique se o Apps Script foi publicado como "Qualquer pessoa".');
+      }
+    }
+
+    // --- FUNÇÕES DA PÁGINA 2 ---
+    function carregarDashboard() {
+      navegarPara('page2');
+      if (usuarioAtual.tipo === 'admin') {
+        document.getElementById('adminView').style.display = 'block';
+        document.getElementById('clienteView').style.display = 'none';
+      } else {
+        document.getElementById('adminView').style.display = 'none';
+        document.getElementById('clienteView').style.display = 'block';
+        carregarEventos();
+      }
+    }
+
+    async function criarEvento() {
+      const nome = document.getElementById('nomeEvento').value;
+      const data = document.getElementById('dataEvento').value;
+      const valor = document.getElementById('valorEvento').value;
+
+      if (!nome || !data || !valor) return alert('Preencha todos os campos do evento!');
+
+      try {
+        await// O uso de text/plain impede o Preflight do navegador e evita o CORS
+        fetch(API_URL, {
+        method: 'POST',
+        contentType: 'text/plain;charset=utf-8',
+        body: JSON.stringify(dados)
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Erro na requisição:', error));
+        alert('Evento publicado com sucesso!');
+        document.getElementById('nomeEvento').value = '';
+        document.getElementById('dataEvento').value = '';
+        document.getElementById('valorEvento').value = '';
+      } catch (error) {
+        console.error('Erro ao criar evento:', error);
+        alert('Erro ao publicar evento.');
+      }
+    }
+
+    async function carregarEventos() {
+      try {
+        const res = await fetch(`${API_URL}?action=listarEventos`);
+        const data = await res.json();
+        const container = document.getElementById('listaEventos');
+        container.innerHTML = '';
+
+        if (data.eventos && data.eventos.length > 0) {
+          data.eventos.forEach(evt => {
+            container.innerHTML += `
+              <div class="event-card">
+                <h3>${evt.nome}</h3>
+                <p>Data: ${evt.data}</p>
+                <p><strong>R$ ${evt.valor}</strong></p>
+                <button onclick="iniciarInscricao('${evt.id}')">Inscrever-se</button>
+              </div>
+            `;
+          });
+        } else {
+          container.innerHTML = '<p>Nenhum evento disponível no momento.</p>';
+        }
+      } catch (error) {
+        console.error('Erro ao listar eventos:', error);
+      }
+    }
+
+    // --- FUNÇÕES DA PÁGINA 3 ---
+    function iniciarInscricao(eventoId) {
+      eventoSelecionado = eventoId;
+      navegarPara('page3');
+
+      // Gera o QR Code dinamicamente
+      document.getElementById('qrcode').innerHTML = "";
+      new QRCode(document.getElementById("qrcode"), {
+        text: document.getElementById('pixCode').value,
+        width: 180,
+        height: 180
+      });
+    }
+
+    // --- FUNÇÕES DA PÁGINA 4 ---
+    async function confirmarPagamento() {
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          contentType: 'text/plain;charset=utf-8',
+          body: JSON.stringify({ 
+            action: 'confirmarInscricao', 
+            email: usuarioAtual.email, 
+            eventoId: eventoSelecionado 
+          })
+        });
+        const data = await res.json();
+
+        if (data.status === 'sucesso') {
+          document.getElementById('codigoIngresso').innerText = data.codigo;
+          navegarPara('page4');
+        }
+      } catch (error) {
+        console.error('Erro ao confirmar pagamento:', error);
+        alert('Erro ao processar inscrição.');
+      }
+    }
+  </script>
+</body>
+</html>
