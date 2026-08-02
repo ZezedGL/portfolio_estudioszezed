@@ -64,8 +64,8 @@
   </div>
 
   <script>
-    // Substitua pela URL da sua Web App do Google Apps Script
-    const API_URL = [AKfycbxWCceEDtl1QamXid-LY6uQL1eySaJ7V8MG-bcR1e-X_fqUA08hTB3aiRpVjnWxinY]; 
+    // URL Corrigida com aspas e link completo do Google Apps Script
+    const API_URL = "https://script.google.com/macros/s/AKfycbxWCceEDtl1QamXid-LY6uQL1eySaJ7V8MG-bcR1e-X_fqUA08hTB3aiRpVjnWxinY/exec"; 
 
     let usuarioAtual = { email: '', tipo: '' };
     let eventoSelecionado = null;
@@ -73,6 +73,18 @@
     function navegarPara(pageId) {
       document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
       document.getElementById(pageId).classList.add('active');
+    }
+
+    // Função auxiliar padronizada para enviar os dados corretamente
+    async function enviarParaAPI(dados) {
+      const resposta = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8' // Formato correto para evitar CORS
+        },
+        body: JSON.stringify(dados)
+      });
+      return await resposta.json();
     }
 
     // --- FUNÇÕES DA PÁGINA 1 ---
@@ -84,17 +96,11 @@
       if (!email || !senha) return alert('Preencha todos os campos!');
 
       try {
-        // Envio com text/plain para evitar Preflight (OPTIONS) e erros de CORS
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          contentType: 'text/plain;charset=utf-8',
-          body: JSON.stringify({ action: 'cadastro', email, senha, tipo })
-        });
-        const data = await res.json();
+        const data = await enviarParaAPI({ action: 'cadastro', email, senha, tipo });
         alert(data.message);
       } catch (error) {
         console.error('Erro no cadastro:', error);
-        alert('Erro ao realizar cadastro. Verifique a URL e as permissões do Apps Script.');
+        alert('Erro ao realizar cadastro. Pressione F12 e veja a aba Console para mais detalhes.');
       }
     }
 
@@ -103,12 +109,7 @@
       const senha = document.getElementById('loginSenha').value;
 
       try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          contentType: 'text/plain;charset=utf-8',
-          body: JSON.stringify({ action: 'login', email, senha })
-        });
-        const data = await res.json();
+        const data = await enviarParaAPI({ action: 'login', email, senha });
 
         if (data.status === 'sucesso') {
           usuarioAtual = { email, tipo: data.tipo };
@@ -118,7 +119,7 @@
         }
       } catch (error) {
         console.error('Erro no login:', error);
-        alert('Erro ao realizar login. Verifique se o Apps Script foi publicado como "Qualquer pessoa".');
+        alert('Erro ao realizar login. Pressione F12 e veja a aba Console para mais detalhes.');
       }
     }
 
@@ -143,15 +144,7 @@
       if (!nome || !data || !valor) return alert('Preencha todos os campos do evento!');
 
       try {
-        await// O uso de text/plain impede o Preflight do navegador e evita o CORS
-        fetch(API_URL, {
-        method: 'POST',
-        contentType: 'text/plain;charset=utf-8',
-        body: JSON.stringify(dados)
-})
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Erro na requisição:', error));
+        await enviarParaAPI({ action: 'criarEvento', nome, data, valor });
         alert('Evento publicado com sucesso!');
         document.getElementById('nomeEvento').value = '';
         document.getElementById('dataEvento').value = '';
@@ -205,16 +198,11 @@
     // --- FUNÇÕES DA PÁGINA 4 ---
     async function confirmarPagamento() {
       try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          contentType: 'text/plain;charset=utf-8',
-          body: JSON.stringify({ 
-            action: 'confirmarInscricao', 
-            email: usuarioAtual.email, 
-            eventoId: eventoSelecionado 
-          })
+        const data = await enviarParaAPI({ 
+          action: 'confirmarInscricao', 
+          email: usuarioAtual.email, 
+          eventoId: eventoSelecionado 
         });
-        const data = await res.json();
 
         if (data.status === 'sucesso') {
           document.getElementById('codigoIngresso').innerText = data.codigo;
