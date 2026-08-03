@@ -64,8 +64,8 @@
   </div>
 
   <script>
-    // URL Corrigida com aspas e link completo do Google Apps Script
-    const API_URL = "https://script.google.com/macros/s/AKfycbxWCceEDtl1QamXid-LY6uQL1eySaJ7V8MG-bcR1e-X_fqUA08hTB3aiRpVjnWxinY/exec"; 
+    // A API agora aponta para o seu arquivo local PHP em vez do Google
+    const API_URL = "api.php"; 
 
     let usuarioAtual = { email: '', tipo: '' };
     let eventoSelecionado = null;
@@ -75,12 +75,12 @@
       document.getElementById(pageId).classList.add('active');
     }
 
-    // Função auxiliar padronizada para enviar os dados corretamente
+    // Função auxiliar padronizada
     async function enviarParaAPI(dados) {
       const resposta = await fetch(API_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'text/plain;charset=utf-8' // Formato correto para evitar CORS
+          'Content-Type': 'application/json' // O PHP consegue ler JSON nativamente!
         },
         body: JSON.stringify(dados)
       });
@@ -100,7 +100,7 @@
         alert(data.message);
       } catch (error) {
         console.error('Erro no cadastro:', error);
-        alert('Erro ao realizar cadastro. Pressione F12 e veja a aba Console para mais detalhes.');
+        alert('Erro ao comunicar com o servidor PHP.');
       }
     }
 
@@ -119,7 +119,7 @@
         }
       } catch (error) {
         console.error('Erro no login:', error);
-        alert('Erro ao realizar login. Pressione F12 e veja a aba Console para mais detalhes.');
+        alert('Erro ao comunicar com o servidor PHP.');
       }
     }
 
@@ -144,14 +144,14 @@
       if (!nome || !data || !valor) return alert('Preencha todos os campos do evento!');
 
       try {
-        await enviarParaAPI({ action: 'criarEvento', nome, data, valor });
-        alert('Evento publicado com sucesso!');
+        const res = await enviarParaAPI({ action: 'criarEvento', nome, data, valor });
+        alert(res.message);
         document.getElementById('nomeEvento').value = '';
         document.getElementById('dataEvento').value = '';
         document.getElementById('valorEvento').value = '';
       } catch (error) {
         console.error('Erro ao criar evento:', error);
-        alert('Erro ao publicar evento.');
+        alert('Erro ao publicar evento no banco de dados.');
       }
     }
 
@@ -162,7 +162,7 @@
         const container = document.getElementById('listaEventos');
         container.innerHTML = '';
 
-        if (data.eventos && data.eventos.length > 0) {
+        if (data.status === 'sucesso' && data.eventos.length > 0) {
           data.eventos.forEach(evt => {
             container.innerHTML += `
               <div class="event-card">
@@ -210,7 +210,7 @@
         }
       } catch (error) {
         console.error('Erro ao confirmar pagamento:', error);
-        alert('Erro ao processar inscrição.');
+        alert('Erro ao processar inscrição no banco de dados.');
       }
     }
   </script>
